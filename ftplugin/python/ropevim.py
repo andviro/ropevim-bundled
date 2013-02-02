@@ -209,6 +209,7 @@ class VimUtils(ropemode.environment.Environment):
 
     def show_occurrences(self, locations):
         self._quickfixdefs(locations)
+        vim.command('cwindow')
 
     def _quickfixdefs(self, locations):
         filename = os.path.join(tempfile.gettempdir(), tempfile.mktemp())
@@ -235,8 +236,7 @@ class VimUtils(ropemode.environment.Environment):
             tofile.close()
 
     def show_doc(self, docs, altview=False):
-        if docs:
-            echo(docs)
+        call('ropevim#ShowDoc("%s")' % re.escape(docs))
 
     def preview_changes(self, diffs):
         echo(diffs)
@@ -264,7 +264,7 @@ class VimUtils(ropemode.environment.Environment):
                     (_vim_name(name), _vim_name(name)))
         if key is not None:
             key = prekey + key.replace(' ', '')
-            vim.command('map %s :call %s()<cr>' % (key, _vim_name(name)))
+            vim.command('nmap <buffer> %s :call %s()<cr>' % (key, _vim_name(name)))
 
     def _add_function(self, name, callback, prefix=False):
         globals()[name] = callback
@@ -357,12 +357,16 @@ class VimProgress(object):
         except vim.error:
             raise KeyboardInterrupt('Task %s was interrupted!' % self.name)
         if percent > self.last + 4:
-            echo('%s ... %s%%%%' % (self.name, percent))
+            status('%s ... %s%%%%' % (self.name, percent))
             self.last = percent
 
     def done(self):
         echo('%s ... done' % self.name)
 
+def status(message):
+    if isinstance(message, unicode):
+        message = message.encode(vim.eval('&encoding'))
+    vim.command('redraw | echon "%s"' % re.escape(message))
 
 def echo(message):
     if isinstance(message, unicode):
@@ -395,27 +399,6 @@ class _ValueCompleter(object):
                           if proposal.startswith(arg_lead)]
             vim.command('let s:completions = %s' % result)
 
-
-variables = {'ropevim_enable_autoimport': 1,
-             'ropevim_autoimport_underlineds': 0,
-             'ropevim_codeassist_maxfixes' : 1,
-             'ropevim_enable_shortcuts' : 1,
-             'ropevim_autoimport_modules': '[]',
-             'ropevim_confirm_saving': 0,
-             'ropevim_local_prefix': '"<C-c>r"',
-             'ropevim_global_prefix': '"<C-x>p"',
-             'ropevim_vim_completion': 0,
-             'ropevim_guess_project': 0}
-
-shortcuts = {'code_assist': '<M-/>',
-             'lucky_assist': '<M-?>',
-             'goto_definition': '<C-c>g',
-             'show_doc': '<C-c>d',
-             'find_occurrences': '<C-c>f'}
-
-insert_shortcuts = {'code_assist': '<M-/>',
-                    'lucky_assist': '<M-?>'}
-
 menu_structure = (
     'open_project',
     'close_project',
@@ -446,24 +429,6 @@ menu_structure = (
 )
 
 
-def _init_variables():
-    for variable, default in variables.items():
-        vim.command('if !exists("g:%s")\n' % variable +
-                    '  let g:%s = %s\n' % (variable, default))
-
-def _enable_shortcuts(env):
-    if env.get('enable_shortcuts'):
-        for command, shortcut in shortcuts.items():
-            vim.command('map %s :call %s()<cr>' %
-                        (shortcut, _vim_name(command)))
-        for command, shortcut in insert_shortcuts.items():
-            command_name = _vim_name(command) + 'InsertMode'
-            vim.command('func! %s()\n' % command_name +
-                        'call %s()\n' % _vim_name(command) +
-                        'return ""\n'
-                        'endfunc')
-            vim.command('imap %s <C-R>=%s()<cr>' % (shortcut, command_name))
-
 def _add_menu(env, root_node='&Ropevim'):
     cmd_tmpl = '%s <silent> %s.%s :call %s()<cr>'
 
@@ -481,15 +446,16 @@ def _add_menu(env, root_node='&Ropevim'):
             vim.command(cmd_tmpl % (cmd, root_node, name, _vim_name(cb)))
 
 
+class RopeModeVim(ropemode.interface.RopeMode):
+    pass
+
 ropemode.decorators.logger.message = echo
 ropemode.decorators.logger.only_short = True
 _completer = _ValueCompleter()
 
-_init_variables()
 _env = VimUtils()
-_interface = ropemode.interface.RopeMode(env=_env)
+_interface = RopeModeVim(env=_env)
 _interface.init()
-_enable_shortcuts(_env)
 
 _add_menu(_env)
 _add_menu(_env, 'PopUp.&Ropevim') # menu weight can also be added
