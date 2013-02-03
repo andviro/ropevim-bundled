@@ -208,8 +208,11 @@ class VimUtils(ropemode.environment.Environment):
         return prefix
 
     def show_occurrences(self, locations):
-        self._quickfixdefs(locations)
-        vim.command('cwindow')
+        nlines = len(locations)
+        nlines = 8 if nlines > 8 else nlines
+        if nlines:
+            self._quickfixdefs(locations)
+            vim.command('{0}cwindow'.format(nlines))
 
     def _quickfixdefs(self, locations):
         filename = os.path.join(tempfile.gettempdir(), tempfile.mktemp())
@@ -218,7 +221,7 @@ class VimUtils(ropemode.environment.Environment):
             vim.command('let old_errorfile = &errorfile')
             vim.command('let old_errorformat = &errorformat')
             vim.command('set errorformat=%f:%l:\ %m')
-            vim.command('cfile ' + filename)
+            vim.command('cgetfile ' + filename)
             vim.command('let &errorformat = old_errorformat')
             vim.command('let &errorfile = old_errorfile')
         finally:
@@ -226,17 +229,19 @@ class VimUtils(ropemode.environment.Environment):
 
     def _writedefs(self, locations, filename):
         tofile = open(filename, 'w')
+        src_cache = {}
         try:
-            for location in locations:
-                err = '%s:%d: - %s\n' % (location.filename,
-                                         location.lineno, location.note)
-                echo(err)
+            for i, location in enumerate(locations):
+                data = src_cache.get(os.path.abspath(location.filename),
+                                     location.location.resource.read().splitlines())
+                location.note = data[location.lineno-1].strip()
+                err = '{0}:{1}: {2}\n'.format(location.filename, location.lineno, location.note)
                 tofile.write(err)
         finally:
             tofile.close()
 
     def show_doc(self, docs, altview=False):
-        call('ropevim#ShowDoc("%s")' % re.escape(docs))
+        call('ropevim#ShowDoc("{0}")'.format(re.escape(docs)))
 
     def preview_changes(self, diffs):
         echo(diffs)

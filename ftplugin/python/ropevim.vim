@@ -25,17 +25,16 @@ call ropevim#setdefault("g:ropevim_global_prefix", "<Leader>p")
 call ropevim#setdefault("g:ropevim_short_prefix", "<Leader>")
 call ropevim#setdefault("g:ropevim_vim_completion", 1)
 call ropevim#setdefault("g:ropevim_guess_project", 1)
-call ropevim#setdefault("g:ropevim_always_show_complete_menu", 1)
+call ropevim#setdefault("g:ropevim_always_show_complete_menu", 0)
 
 exe "noremap <silent> <buffer> " . g:ropevim_short_prefix . "d :RopeGotoDefinition<CR>"
 exe "noremap <silent> <buffer> " . g:ropevim_short_prefix . "n :RopeFindOccurrences<CR>"
 exe "noremap <silent> <buffer> " . g:ropevim_short_prefix . "m :emenu Ropevim.<TAB>"
 nnoremap <silent> <buffer> K :RopeShowDoc<CR>
 let s:rascm = g:ropevim_always_show_complete_menu ? "<C-P>" : ""
-exe "inoremap <silent> <buffer> . .<C-R>=RopeCodeAssistInsertMode()<CR>" . s:rascm
-exe "inoremap <silent> <buffer> ( (<C-R>=RopeCodeAssistInsertMode()<CR>" . s:rascm
 exe "inoremap <silent> <buffer> <M-?> :<C-R>=RopeLuckyAssistInsertMode()<CR>" . s:rascm
 exe "inoremap <silent> <buffer> <Esc>? :<C-R>=RopeLuckyAssistInsertMode()<CR>" . s:rascm
+exe "inoremap <silent> <buffer> <C-Space> :<C-R>=RopeLuckyAssistInsertMode()<CR>" . s:rascm
 
 " Check for ropevim plugin is loaded
 if exists("g:ropevim_loaded")
