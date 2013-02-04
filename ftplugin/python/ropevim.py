@@ -2,15 +2,16 @@
 import os
 import tempfile
 import re
+import glob
 
-import ropemode.decorators
-import ropemode.environment
-import ropemode.interface
+from ropemode import decorators
+from ropemode import environment
+from ropemode import interface
 
 import vim
 
 
-class VimUtils(ropemode.environment.Environment):
+class VimUtils(environment.Environment):
 
     def ask(self, prompt, default=None, starting=None):
         if starting is None:
@@ -73,7 +74,7 @@ class VimUtils(ropemode.environment.Environment):
         echo(message)
 
     def yes_or_no(self, prompt):
-        return self.ask_values(prompt, ['yes', 'no']) == 'yes'
+        return self.ask_values(prompt, ['yes', 'no']).startswith('y')
 
     def y_or_n(self, prompt):
         return self.yes_or_no(prompt)
@@ -451,11 +452,35 @@ def _add_menu(env, root_node='&Ropevim'):
             vim.command(cmd_tmpl % (cmd, root_node, name, _vim_name(cb)))
 
 
-class RopeModeVim(ropemode.interface.RopeMode):
+class RopeModeVim(interface.RopeMode):
+    @decorators.global_command('o')
+    def open_project(self, root=None, quiet=False):
+        global _rope_quiet
+        _rope_quiet = quiet
+
+        super(RopeModeVim, self).open_project(root=root)
+        assert self.project is not None
+
+        rope_project_dir = os.path.join(self.project.address, '.ropeproject')
+        vimfiles = glob.glob(os.path.join(rope_project_dir, '*.vim'))
+
+        if not vimfiles:
+            return
+
+        txt = 'Sourcing vim files under \'.ropeproject/\''
+        progress = self.env.create_progress(txt)
+        for idx, vimfile in enumerate(sorted(vimfiles)):
+            progress.name = txt + ' ({0})'.format(os.path.basename(vimfile))
+            vim.command(':silent source {0}'.format(vimfile))
+            progress.update(idx * 100 / len(vimfiles))
+
+        progress.name = txt
+        progress.done()
+        echo('Project opened!')
     pass
 
-ropemode.decorators.logger.message = echo
-ropemode.decorators.logger.only_short = True
+decorators.logger.message = echo
+decorators.logger.only_short = True
 _completer = _ValueCompleter()
 
 _env = VimUtils()
