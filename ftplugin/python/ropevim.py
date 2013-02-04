@@ -459,7 +459,8 @@ class RopeModeVim(interface.RopeMode):
         _rope_quiet = quiet
 
         super(RopeModeVim, self).open_project(root=root)
-        assert self.project is not None
+        if self.project is None:
+            return
 
         rope_project_dir = os.path.join(self.project.address, '.ropeproject')
         vimfiles = glob.glob(os.path.join(rope_project_dir, '*.vim'))
