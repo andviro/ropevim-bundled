@@ -32,9 +32,8 @@ exe "noremap <silent> <buffer> " . g:ropevim_short_prefix . "n :RopeFindOccurren
 exe "noremap <silent> <buffer> " . g:ropevim_short_prefix . "m :emenu Ropevim.<TAB>"
 nnoremap <silent> <buffer> K :RopeShowDoc<CR>
 let s:rascm = g:ropevim_always_show_complete_menu ? "<C-P>" : ""
-exe "inoremap <silent> <buffer> <M-?> :<C-R>=RopeLuckyAssistInsertMode()<CR>" . s:rascm
-exe "inoremap <silent> <buffer> <Esc>? :<C-R>=RopeLuckyAssistInsertMode()<CR>" . s:rascm
-exe "inoremap <silent> <buffer> <C-Space> :<C-R>=RopeLuckyAssistInsertMode()<CR>" . s:rascm
+exe "inoremap <silent> <buffer> <M-?> <C-R>=RopeLuckyAssistInsertMode()<CR>" . s:rascm
+exe "inoremap <silent> <buffer> <Esc>? <C-R>=RopeLuckyAssistInsertMode()<CR>" . s:rascm
 
 " Check for ropevim plugin is loaded
 if exists("g:ropevim_loaded")
